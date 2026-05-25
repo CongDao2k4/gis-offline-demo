@@ -134,19 +134,206 @@ EOF
 
 - Sau khi tải xong, chạy thêm: `osmium fileinfo -e data/vietnam-latest.osm.pbf`
 
-    - Kết quả: 
+- Kết quả: 
 
 ```bash
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ osmium fileinfo -e data/vietnam-latest.osm.pbf
+File:
+  Name: data/vietnam-latest.osm.pbf
+  Format: PBF
+  Compression: none
+  Size: 323848065
 Header:
-  Bounding boxes
-  With history
-  Options
+  Bounding boxes:
+    (102.095945,7.382239,114.642323,23.402135)
+  With history: no
+  Options:
+    generator=osmium/1.16.0
+    osmosis_replication_base_url=https://download.geofabrik.de/asia/vietnam-updates
+    osmosis_replication_sequence_number=4794
+    osmosis_replication_timestamp=2026-05-24T20:21:00Z
+    pbf_dense_nodes=true
+    pbf_optional_feature_0=Sort.Type_then_ID
+    sorting=Type_then_ID
+    timestamp=2026-05-24T20:21:00Z
+[======================================================================] 100% 
 Data:
-  Number of nodes
-  Number of ways
-  Number of relations
+  Bounding box: (100.6067931,6.2183523,114.6407887,23.5024689)
+  Timestamps:
+    First: 2007-10-16T12:57:06Z
+    Last: 2026-05-24T19:48:55Z
+  Objects ordered (by type and id): yes
+  Multiple versions of same object: no
+  CRC32: not calculated (use --crc/-c to enable)
+  Number of changesets: 0
+  Number of nodes: 45662234
+  Number of ways: 4648533
+  Number of relations: 21963
+  Smallest changeset ID: 0
+  Smallest node ID: 74099711
+  Smallest way ID: 9566396
+  Smallest relation ID: 13422
+  Largest changeset ID: 0
+  Largest node ID: 13873884692
+  Largest way ID: 1520956961
+  Largest relation ID: 20733784
+  Number of buffers: 60263 (avg 835 objects per buffer)
+  Sum of buffer sizes: 3836918600 (3.659 GB)
+  Sum of buffer capacities: 3952803840 (3.769 GB, 97% full)
+Metadata:
+  All objects have following metadata attributes: version+timestamp
+  Some objects have following metadata attributes: version+timestamp
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
 ```
 
+
+Chạy lại các lệnh:
+```bash
+ls -lh data/
+osmium fileinfo data/vietnam-latest.osm.pbf
+osmium fileinfo -e data/vietnam-latest.osm.pbf | head -n 40
+```
+
+
+## 5. Chạy code sh để chỉ lấy dữ liệu map của Hà Nội
+
+Chạy `sh scripts/02_extract_hanoi.sh`
+
+Chạy kiểm tra chi tiết 2 file `hanoi.osm.pbf` và `hanoi_roads.osm.pbf`: lệnh `osmium fileinfo -e data/hanoi.osm.pbf | head -n 40` và lệnh `osmium fileinfo -e data/hanoi_roads.osm.pbf | head -n 40`
+
+Kiểm tra dung lượng `ls -lh data/`
+
+Kết quả:
+
+```bash
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ sh scripts/02_extract_hanoi.sh
+[INFO] Input file:
+-rwxrwxrwx 1 cong2004 cong2004 309M May 24 22:34 data/vietnam-latest.osm.pbf
+[INFO] Extracting Ha Noi area...
+[======================================================================] 100% 
+[INFO] Ha Noi extract created:
+-rwxrwxrwx 1 cong2004 cong2004 27M May 25 10:05 data/hanoi.osm.pbf
+[INFO] Ha Noi extract fileinfo:
+File:
+  Name: data/hanoi.osm.pbf
+  Format: PBF
+  Compression: none
+  Size: 27588654
+Header:
+  Bounding boxes:
+  With history: no
+  Options:
+    generator=osmium/1.19.0
+    pbf_dense_nodes=true
+    pbf_optional_feature_0=Sort.Type_then_ID
+    sorting=Type_then_ID
+[INFO] Filtering highway ways from Ha Noi extract...
+[======================================================================] 100% 
+[INFO] Ha Noi roads file created:
+-rwxrwxrwx 1 cong2004 cong2004 16M May 25 10:05 data/hanoi_roads.osm.pbf
+[INFO] Ha Noi roads fileinfo:
+File:
+  Name: data/hanoi_roads.osm.pbf
+  Format: PBF
+  Compression: none
+  Size: 15879306
+Header:
+  Bounding boxes:
+  With history: no
+  Options:
+    generator=osmium/1.19.0
+    pbf_dense_nodes=true
+    pbf_optional_feature_0=Sort.Type_then_ID
+    sorting=Type_then_ID
+[DONE] Step 3 completed.
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ osmium fileinfo -e data/hanoi.osm.pbf | head -n 40
+File:
+  Name: data/hanoi.osm.pbf
+  Format: PBF
+  Compression: none
+  Size: 27588654
+Header:
+  Bounding boxes:
+  With history: no
+  Options:
+    generator=osmium/1.19.0
+    pbf_dense_nodes=true
+    pbf_optional_feature_0=Sort.Type_then_ID
+    sorting=Type_then_ID
+Data:
+  Bounding box: (104.7092046,20.1231883,106.7530801,21.6373892)
+  Timestamps:
+    First: 2007-10-16T12:57:06Z
+    Last: 2026-05-24T19:25:24Z
+  Objects ordered (by type and id): yes
+  Multiple versions of same object: no
+  CRC32: not calculated (use --crc/-c to enable)
+  Number of changesets: 0
+  Number of nodes: 3227923
+  Number of ways: 542604
+  Number of relations: 4037
+  Smallest changeset ID: 0
+  Smallest node ID: 74126839
+  Smallest way ID: 9566396
+  Smallest relation ID: 13430
+  Largest changeset ID: 0
+  Largest node ID: 13873834440
+  Largest way ID: 1520955359
+  Largest relation ID: 20729843
+  Number of buffers: 4874 (avg 774 objects per buffer)
+  Sum of buffer sizes: 308804968 (0.294 GB)
+  Sum of buffer capacities: 321323008 (0.306 GB, 96% full)
+Metadata:
+  All objects have following metadata attributes: version+timestamp
+  Some objects have following metadata attributes: version+timestamp
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ osmium fileinfo -e data/hanoi_roads.osm.pbf | head -n 40
+File:
+  Name: data/hanoi_roads.osm.pbf
+  Format: PBF
+  Compression: none
+  Size: 15879306
+Header:
+  Bounding boxes:
+  With history: no
+  Options:
+    generator=osmium/1.19.0
+    pbf_dense_nodes=true
+    pbf_optional_feature_0=Sort.Type_then_ID
+    sorting=Type_then_ID
+Data:
+  Bounding box: (105.0958807,20.2497056,106.1389386,21.3294731)
+  Timestamps:
+    First: 2007-10-21T12:30:28Z
+    Last: 2026-05-24T19:25:24Z
+  Objects ordered (by type and id): yes
+  Multiple versions of same object: no
+  CRC32: not calculated (use --crc/-c to enable)
+  Number of changesets: 0
+  Number of nodes: 1712206
+  Number of ways: 276191
+  Number of relations: 0
+  Smallest changeset ID: 0
+  Smallest node ID: 75617751
+  Smallest way ID: 9566542
+  Smallest relation ID: 0
+  Largest changeset ID: 0
+  Largest node ID: 13873705561
+  Largest way ID: 1520518905
+  Largest relation ID: 0
+  Number of buffers: 2494 (avg 797 objects per buffer)
+  Sum of buffer sizes: 158279856 (0.15 GB)
+  Sum of buffer capacities: 163446784 (0.155 GB, 97% full)
+Metadata:
+  All objects have following metadata attributes: version+timestamp
+  Some objects have following metadata attributes: version+timestamp
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
+cong2004@DESKTOP-33JPL77:/mnt/d/A-VinVSF/gis-offline-demo$ 
+```
 
 
 
