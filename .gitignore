@@ -1,6 +1,15 @@
-.venv
-.idea
+# IDE
+.idea/
 
-.env
+# Python virtual environment
+.venv/
+venv/
 
-data/
+# Large GIS data
+data/*.osm.pbf
+out/*.mbtiles
+public/tiles/
+
+# OS files
+.DS_Store
+Thumbs.db
