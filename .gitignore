@@ -6,9 +6,8 @@
 venv/
 
 # Large GIS data
-data/*.osm.pbf
-out/*.mbtiles
-public/tiles/
+# data/*.osm.pbf
+data/vietnam-latest.osm.pbf
 
 # OS files
 .DS_Store
