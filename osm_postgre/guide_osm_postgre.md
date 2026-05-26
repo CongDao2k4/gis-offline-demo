@@ -24,6 +24,7 @@ services:
       - POSTGRES_USER=gisuser
       - POSTGRES_PASS=gispassword
       - ALLOW_IP_RANGE=0.0.0.0/0
+      - POSTGRES_HOST_AUTH_METHOD=trust # <--- Dòng này ép DB tin tưởng kết nối local
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -76,6 +77,8 @@ osm2pgsql \
   --hstore \
   data/hanoi_roads.osm.pbf
 ```
+
+### Hoặc có thể tạo thành code 1 file .sh để chạy.  `sh scripts/03_import_postgis.sh`
 
 - Kiểm tra lại tại wsl command: `docker exec -it osm_db psql -h localhost -U gisuser -d gis` để vào dòng lệnh của DB gis trên WSL command
 
@@ -161,7 +164,7 @@ LIMIT 1;
 
 (END)
 ```
-Hoặc có thể tạo thành code 1 file .sh để chạy. 
+
 
 
 
