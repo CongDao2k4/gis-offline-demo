@@ -1,124 +1,225 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>Hanoi Roads Offline Map</title>
+    <meta charset="utf-8"/>
+    <title>Hanoi Offline Map Debug</title>
 
-    <link href="http://localhost:8081/maplibre-gl.css" rel="stylesheet" />
+    <link href="http://localhost:8081/maplibre-gl.css" rel="stylesheet"/>
     <script src="http://localhost:8081/maplibre-gl.js"></script>
 
     <style>
         html, body, #map {
-          margin: 0;
-          width: 100%;
-          height: 100%;
+            margin: 0;
+            width: 100%;
+            height: 100%;
         }
+
         #map {
-          background: #f3f3f3;
+            background: #f3f3f3;
+        }
+
+        #debug-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 10;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            max-width: 460px;
+            line-height: 1.45;
+        }
+
+        #debug-panel code {
+            display: block;
+            white-space: normal;
+            word-break: break-all;
+            background: #f2f2f2;
+            padding: 4px;
+            margin-top: 4px;
+            border-radius: 4px;
         }
     </style>
 </head>
 
 <body>
 <div id="map"></div>
+<div id="debug-panel">Loading...</div>
 
 <script>
+    const MIN_ZOOM = 6;
+    const MAX_ZOOM = 14;
+    const DEFAULT_PATCH_DELTA = 0.01;
+
     const map = new maplibregl.Map({
-      container: "map",
-      center: [105.85, 21.03],
-      zoom: 14,
-      style: {
-        version: 8,
-        sources: {
-          hanoi_roads: {
-            type: "vector",
-            tiles: [
-              "http://localhost:8081/data/hanoi_roads/{z}/{x}/{y}.pbf"
-            ],
-            minzoom: 6,
-            maxzoom: 14
-          }
-        },
-        layers: [
-          {
-            id: "background",
-            type: "background",
-            paint: {
-              "background-color": "#f3f3f3"
-            }
-          },
-          {
-            id: "roads",
-            type: "line",
-            source: "hanoi_roads",
-            "source-layer": "roads",
-            paint: {
-              "line-color": [
-                "match",
-                ["get", "class"],
-
-                "motorway", "#ff0000",
-                "trunk", "#ff5500",
-                "primary", "#ff8800",
-                "secondary", "#ffcc00",
-                "tertiary", "#ffee88",
-                "residential", "#999999",
-
-                "#3388ff"
-                ],
-              "line-width": [
-                "interpolate", ["linear"],
-                ["zoom"],
-                6, 0.3,
-                10, 1,
-                12, 2,
-                14, 4
-              ]
-            }
-          }
-        ]
-      }
+        container: "map",
+        center: [105.85, 21.03],
+        zoom: 14,
+        style: "http://localhost:8081/styles/hanoi/style.json"
     });
 
     map.addControl(new maplibregl.NavigationControl());
 
+    function lngLatToTile(lng, lat, z) {
+        const latRad = lat * Math.PI / 180;
+        const n = Math.pow(2, z);
+
+        const x = Math.floor((lng + 180) / 360 * n);
+        const y = Math.floor(
+            (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n
+        );
+
+        return { z, x, y };
+    }
+
+    function bboxAround(lng, lat, delta = DEFAULT_PATCH_DELTA) {
+        return {
+            minLon: lng - delta,
+            minLat: lat - delta,
+            maxLon: lng + delta,
+            maxLat: lat + delta
+        };
+    }
+
+    function bboxToString(bbox) {
+        return [
+            bbox.minLon.toFixed(6),
+            bbox.minLat.toFixed(6),
+            bbox.maxLon.toFixed(6),
+            bbox.maxLat.toFixed(6)
+        ].join(",");
+    }
+
+    function updateDebugPanelForCenter() {
+        const center = map.getCenter();
+        const zoom = Math.floor(map.getZoom());
+        const tile = lngLatToTile(center.lng, center.lat, zoom);
+
+        document.getElementById("debug-panel").innerHTML = `
+      <b>Map Debug</b><br/>
+      Center: ${center.lng.toFixed(6)}, ${center.lat.toFixed(6)}<br/>
+      Zoom: ${zoom}<br/>
+      Center Tile: ${tile.z}/${tile.x}/${tile.y}<br/>
+      <hr/>
+      Click vào điểm lỗi để lấy bbox patch.
+    `;
+    }
+
+    function updateDebugPanelForClick(e) {
+        const lng = e.lngLat.lng;
+        const lat = e.lngLat.lat;
+        const zoom = Math.floor(map.getZoom());
+        const tile = lngLatToTile(lng, lat, zoom);
+
+        const bbox = bboxAround(lng, lat);
+        const bboxStr = bboxToString(bbox);
+        const patchName = `patch_${tile.z}_${tile.x}_${tile.y}`;
+
+        const patchCommand =
+            `sh scripts/06_emergency_patch_mbtiles.sh data/vietnam-latest.osm.pbf "${bboxStr}" ${patchName} ${MIN_ZOOM} ${MAX_ZOOM}`;
+
+        const renderCommand =
+            `sh scripts/09_render_png_tiles_for_bbox.sh "${bboxStr}" ${MIN_ZOOM} ${MAX_ZOOM} hanoi patches/${patchName}/png_tiles`;
+
+        document.getElementById("debug-panel").innerHTML = `
+      <b>Selected Error Point</b><br/>
+      LngLat: ${lng.toFixed(6)}, ${lat.toFixed(6)}<br/>
+      Zoom: ${zoom}<br/>
+      Current Tile: ${tile.z}/${tile.x}/${tile.y}<br/>
+      Patch BBOX:
+      <code>${bboxStr}</code>
+      Generate patch:
+      <code>${patchCommand}</code>
+      Render affected PNG tiles:
+      <code>${renderCommand}</code>
+    `;
+
+        console.log("Patch bbox:", bboxStr);
+        console.log("Current tile:", tile);
+        console.log("Patch command:", patchCommand);
+        console.log("Render command:", renderCommand);
+    }
+
+    function showRoadPopup(e) {
+        const feature = e.features[0];
+        const p = feature.properties;
+
+        new maplibregl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(`
+        <b>Road</b><br/>
+        Name: ${p.name || "Không có tên"}<br/>
+        Class: ${p.class || "unknown"}<br/>
+        Surface: ${p.surface || "unknown"}<br/>
+        Lanes: ${p.lanes || "unknown"}<br/>
+        Bridge: ${p.bridge || "no"}
+      `)
+            .addTo(map);
+
+        console.log("Road properties:", p);
+    }
+
+    function showGenericPopup(layerName, title) {
+        return function(e) {
+            const feature = e.features[0];
+            const p = feature.properties;
+
+            new maplibregl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(`
+          <b>${title}</b><br/>
+          Name: ${p.name || "Không có tên"}<br/>
+          Class: ${p.class || p.amenity || p.building || p.leisure || "unknown"}
+        `)
+                .addTo(map);
+
+            console.log(layerName, p);
+        };
+    }
+
+    map.on("load", () => {
+        updateDebugPanelForCenter();
+
+        map.on("click", "roads-minor", showRoadPopup);
+        map.on("click", "roads-major", showRoadPopup);
+
+        map.on("click", "planned-roads", showGenericPopup("planned-roads", "Planned / Construction Road"));
+        map.on("click", "water", showGenericPopup("water", "Water"));
+        map.on("click", "water-lines", showGenericPopup("water-lines", "Waterway"));
+        map.on("click", "landuse", showGenericPopup("landuse", "Landuse"));
+        map.on("click", "buildings", showGenericPopup("buildings", "Building"));
+        map.on("click", "poi-labels", showGenericPopup("poi-labels", "POI"));
+
+        const clickableLayers = [
+            "roads-minor",
+            "roads-major",
+            "planned-roads",
+            "water",
+            "water-lines",
+            "landuse",
+            "buildings",
+            "poi-labels"
+        ];
+
+        clickableLayers.forEach((layerId) => {
+            map.on("mouseenter", layerId, () => {
+                map.getCanvas().style.cursor = "pointer";
+            });
+
+            map.on("mouseleave", layerId, () => {
+                map.getCanvas().style.cursor = "";
+            });
+        });
+    });
+
+    map.on("moveend", updateDebugPanelForCenter);
+    map.on("zoomend", updateDebugPanelForCenter);
+
     map.on("click", (e) => {
-      const lng = e.lngLat.lng;
-      const lat = e.lngLat.lat;
-
-      new maplibregl.Popup()
-        .setLngLat([lng, lat])
-        .setHTML(`
-          <b>Selected location</b><br/>
-          Lng: ${lng.toFixed(6)}<br/>
-          Lat: ${lat.toFixed(6)}
-        `)
-        .addTo(map);
-
-      console.log("Clicked:", lng, lat);
-    });
-
-    map.on("click", "roads", (e) => {
-      const feature = e.features[0];
-
-      new maplibregl.Popup()
-        .setLngLat(e.lngLat)
-        .setHTML(`
-          <b>Road</b><br/>
-          Name: ${feature.properties.name || "Không có tên"}<br/>
-          Class: ${feature.properties.class || "unknown"}
-        `)
-        .addTo(map);
-
-      console.log(feature.properties);
-    });
-
-    map.on("mouseenter", "roads", () => {
-      map.getCanvas().style.cursor = "pointer";
-    });
-
-    map.on("mouseleave", "roads", () => {
-      map.getCanvas().style.cursor = "";
+        updateDebugPanelForClick(e);
     });
 </script>
 </body>
