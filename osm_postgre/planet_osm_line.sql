@@ -1,3 +1,5 @@
+SELECT COUNT(*) FROM planet_osm_line;
+
 SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'planet_osm_line' ORDER BY ordinal_position;
 
 SELECT osm_id, name, highway, railway, waterway, bridge, tunnel, surface, way
@@ -42,6 +44,17 @@ FROM (
 -- Tìm các loại highway
 SELECT DISTINCT highway FROM planet_osm_line;
 
+SELECT name, highway, tags, ROUND(ST_Length(way)::numeric, 2) AS length_m, ST_AsText(way) AS line_string
+FROM planet_osm_line
+WHERE lower(name) LIKE 'cầu%'
+ORDER BY ST_Length(way) desc
+LIMIT 100;
+
+SELECT * 
+FROM planet_osm_line
+WHERE lower(name) LIKE 'cầu long biên'
+ORDER BY ST_Length(way) desc
+LIMIT 100;
 
 -- Tính chiều dài đường, độ dài đường, số điểm, số line con
 WITH line_stats AS (

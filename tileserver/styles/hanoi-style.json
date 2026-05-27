@@ -1,0 +1,201 @@
+{
+  "version": 8,
+  "name": "Hanoi Style",
+  "center": [105.85, 21.03],
+  "zoom": 12,
+  "sources": {
+    "hanoi": {
+      "type": "vector",
+      "tiles": [
+        "http://localhost:8081/data/hanoi/{z}/{x}/{y}.pbf"
+      ],
+      "minzoom": 6,
+      "maxzoom": 14
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f3f3f3"
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "hanoi",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#9fd3ff",
+        "fill-opacity": 0.85
+      }
+    },
+    {
+      "id": "water-lines",
+      "type": "line",
+      "source": "hanoi",
+      "source-layer": "water_lines",
+      "paint": {
+        "line-color": "#5dade2",
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          6, 0.5,
+          10, 1.5,
+          14, 4
+        ]
+      }
+    },
+    {
+      "id": "water-labels",
+      "type": "symbol",
+      "source": "hanoi",
+      "source-layer": "water_lines",
+      "minzoom": 11,
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": ["get", "name"],
+        "text-size": 11
+      },
+      "paint": {
+        "text-color": "#2e86c1",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1
+      }
+    },
+    {
+      "id": "poi-labels",
+      "type": "symbol",
+      "source": "hanoi",
+      "source-layer": "poi",
+      "minzoom": 13,
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-size": 10
+      },
+      "paint": {
+        "text-color": "#444444",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1
+      }
+    },
+    {
+      "id": "landuse",
+      "type": "fill",
+      "source": "hanoi",
+      "source-layer": "landuse",
+      "paint": {
+        "fill-color": "#d8f0d2",
+        "fill-opacity": 0.6
+      }
+    },
+    {
+      "id": "buildings",
+      "type": "fill",
+      "source": "hanoi",
+      "source-layer": "buildings",
+      "minzoom": 13,
+      "paint": {
+        "fill-color": "#d9d0c9",
+        "fill-outline-color": "#b8aea6",
+        "fill-opacity": 0.8
+      }
+    },
+    {
+      "id": "planned-roads",
+      "type": "line",
+      "source": "hanoi",
+      "source-layer": "planned_roads",
+      "minzoom": 10,
+      "paint": {
+        "line-color": "#777777",
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          10, 0.7,
+          12, 1.5,
+          14, 3
+        ],
+        "line-dasharray": [2, 2],
+        "line-opacity": 0.55
+      }
+    },
+    {
+      "id": "roads-minor",
+      "type": "line",
+      "source": "hanoi",
+      "source-layer": "roads",
+      "filter": [
+        "in",
+        ["get", "class"],
+        ["literal", ["residential", "living_street", "service", "unclassified", "track", "path", "footway", "pedestrian", "cycleway"]]
+      ],
+      "paint": {
+        "line-color": "#9a9a9a",
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          6, 0.2,
+          10, 0.5,
+          12, 1,
+          14, 2
+        ],
+        "line-opacity": 0.75
+      }
+    },
+    {
+      "id": "roads-major",
+      "type": "line",
+      "source": "hanoi",
+      "source-layer": "roads",
+      "filter": [
+        "in",
+        ["get", "class"],
+        ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary"]]
+      ],
+      "paint": {
+        "line-color": [
+          "match",
+          ["get", "class"],
+          "motorway", "#e63946",
+          "trunk", "#f77f00",
+          "primary", "#fcbf49",
+          "secondary", "#ffd166",
+          "tertiary", "#ffe599",
+          "#555555"
+        ],
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          6, 0.5,
+          10, 1.2,
+          12, 2.2,
+          14, 4
+        ]
+      }
+    },
+    {
+      "id": "road-labels",
+      "type": "symbol",
+      "source": "hanoi",
+      "source-layer": "roads",
+      "minzoom": 13,
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": ["get", "name"],
+        "text-size": 11,
+        "text-font": ["Open Sans Regular"]
+      },
+      "paint": {
+        "text-color": "#333333",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1
+      }
+    }
+  ]
+}
