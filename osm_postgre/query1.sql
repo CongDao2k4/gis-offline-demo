@@ -20,3 +20,9 @@ WHERE ST_Intersects(way, ST_Transform(
 							3857
 						)
 					);
+
+
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'planet_osm_line'
+ORDER BY ordinal_position;
