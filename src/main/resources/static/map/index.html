@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Hanoi Roads Offline Map</title>
+
+    <link href="http://localhost:8081/maplibre-gl.css" rel="stylesheet" />
+    <script src="http://localhost:8081/maplibre-gl.js"></script>
+
+    <style>
+        html, body, #map {
+          margin: 0;
+          width: 100%;
+          height: 100%;
+        }
+        #map {
+          background: #f3f3f3;
+        }
+    </style>
+</head>
+
+<body>
+<div id="map"></div>
+
+<script>
+    const map = new maplibregl.Map({
+      container: "map",
+      center: [105.85, 21.03],
+      zoom: 14,
+      style: {
+        version: 8,
+        sources: {
+          hanoi_roads: {
+            type: "vector",
+            tiles: [
+              "http://localhost:8081/data/hanoi_roads/{z}/{x}/{y}.pbf"
+            ],
+            minzoom: 6,
+            maxzoom: 14
+          }
+        },
+        layers: [
+          {
+            id: "background",
+            type: "background",
+            paint: {
+              "background-color": "#f3f3f3"
+            }
+          },
+          {
+            id: "roads",
+            type: "line",
+            source: "hanoi_roads",
+            "source-layer": "roads",
+            paint: {
+              "line-color": [
+                "match",
+                ["get", "class"],
+
+                "motorway", "#ff0000",
+                "trunk", "#ff5500",
+                "primary", "#ff8800",
+                "secondary", "#ffcc00",
+                "tertiary", "#ffee88",
+                "residential", "#999999",
+
+                "#3388ff"
+                ],
+              "line-width": [
+                "interpolate", ["linear"],
+                ["zoom"],
+                6, 0.3,
+                10, 1,
+                12, 2,
+                14, 4
+              ]
+            }
+          }
+        ]
+      }
+    });
+
+    map.addControl(new maplibregl.NavigationControl());
+
+    map.on("click", (e) => {
+      const lng = e.lngLat.lng;
+      const lat = e.lngLat.lat;
+
+      new maplibregl.Popup()
+        .setLngLat([lng, lat])
+        .setHTML(`
+          <b>Selected location</b><br/>
+          Lng: ${lng.toFixed(6)}<br/>
+          Lat: ${lat.toFixed(6)}
+        `)
+        .addTo(map);
+
+      console.log("Clicked:", lng, lat);
+    });
+
+    map.on("click", "roads", (e) => {
+      const feature = e.features[0];
+
+      new maplibregl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <b>Road</b><br/>
+          Name: ${feature.properties.name || "Không có tên"}<br/>
+          Class: ${feature.properties.class || "unknown"}
+        `)
+        .addTo(map);
+
+      console.log(feature.properties);
+    });
+
+    map.on("mouseenter", "roads", () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+
+    map.on("mouseleave", "roads", () => {
+      map.getCanvas().style.cursor = "";
+    });
+</script>
+</body>
+</html>
