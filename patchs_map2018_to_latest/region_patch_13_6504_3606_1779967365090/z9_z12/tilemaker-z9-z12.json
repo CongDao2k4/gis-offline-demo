@@ -1,0 +1,24 @@
+{
+  "layers": {
+    "landuse": { "minzoom": 9, "maxzoom": 12 },
+    "water": { "minzoom": 9, "maxzoom": 12 },
+    "buildings": { "minzoom": 9, "maxzoom": 12 },
+    "roads": { "minzoom": 9, "maxzoom": 12 },
+    "planned_roads": { "minzoom": 9, "maxzoom": 12 },
+    "poi": { "minzoom": 9, "maxzoom": 12 },
+    "water_lines": { "minzoom": 9, "maxzoom": 12 }
+  },
+  "settings": {
+    "minzoom": 9,
+    "maxzoom": 12,
+    "basezoom": 12,
+    "include_ids": false,
+    "combine_below": 9,
+    "name": "patch_z9_z12",
+    "version": "1.0",
+    "description": "Patch vector tiles for zoom 9-12",
+    "compress": "gzip",
+    "bounds": [105.30, 20.45, 106.10, 21.40],
+    "center": [105.85, 21.03, 11]
+  }
+}

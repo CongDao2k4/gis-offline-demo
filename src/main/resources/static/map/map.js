@@ -1,6 +1,11 @@
 let selectedPatch = null;
 let regionSelectMode = false;
 let dragStart = null;
+let tileCacheBust = Date.now();
+let isReloadingAfterPatch = false;
+let lastPatchBboxStr = null;
+
+const STYLE_URL = "http://localhost:8081/styles/vietnam/style.json";
 
 const MIN_ZOOM = 4;
 const MAX_ZOOM = 16;
@@ -9,10 +14,19 @@ const DEFAULT_PATCH_DELTA = 0.01;
 const map = new maplibregl.Map({
     container: "map",
     center: [105.85, 21.03],
-    zoom: 14,
+    zoom: 12,
     minZoom: MIN_ZOOM,
     maxZoom: MAX_ZOOM,
-    style: "http://localhost:8081/styles/hanoi/style.json"
+    style: `${STYLE_URL}?v=${tileCacheBust}`,
+    transformRequest: (url) => {
+        if (url.includes("localhost:8081/data/vietnam/")) {
+            const sep = url.includes("?") ? "&" : "?";
+            return {
+                url: `${url}${sep}v=${tileCacheBust}`
+            };
+        }
+        return { url };
+    }
 });
 
 map.addControl(new maplibregl.NavigationControl());
@@ -265,11 +279,15 @@ map.on("load", () => {
 });
 
 map.on("moveend", () => {
-    if (!regionSelectMode) updateDebugPanelForCenter();
+    if (!regionSelectMode && !isReloadingAfterPatch) {
+        updateDebugPanelForCenter();
+    }
 });
 
 map.on("zoomend", () => {
-    if (!regionSelectMode) updateDebugPanelForCenter();
+    if (!regionSelectMode && !isReloadingAfterPatch) {
+        updateDebugPanelForCenter();
+    }
 });
 
 map.on("mousedown", (e) => {
@@ -295,26 +313,156 @@ map.on("click", (e) => {
 
 async function runPatch() {
     if (!selectedPatch) {
-        alert("Chưa chọn điểm/vùng lỗi");
+        alert("Chưa chọn vùng/điểm lỗi");
         return;
     }
-
     try {
+        document.getElementById("debug-panel").innerHTML += `
+            <hr/>
+            <b>Running patch...</b><br/>
+            Please wait...
+        `;
         const res = await fetch("/api/patch", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(selectedPatch)
         });
-
         if (!res.ok) {
             const text = await res.text();
             throw new Error(text);
         }
-
         const data = await res.json();
-        alert("Patch done: " + data.outputDir);
+        await reloadMapAfterPatch(selectedPatch.bbox);
+        alert("Patch done and map reloaded: " + data.outputDir);
     } catch (err) {
         console.error(err);
         alert("Patch failed. Xem log backend.");
     }
+}
+
+function parseBbox(bboxStr) {
+    const [minLon, minLat, maxLon, maxLat] = bboxStr.split(",").map(Number);
+    return { minLon, minLat, maxLon, maxLat };
+}
+
+function bboxCenter(bbox) {
+    return [
+        (bbox.minLon + bbox.maxLon) / 2,
+        (bbox.minLat + bbox.maxLat) / 2
+    ];
+}
+
+function bboxPolygon(bbox) {
+    return {
+        type: "Feature",
+        geometry: {
+            type: "Polygon",
+            coordinates: [[
+                [bbox.minLon, bbox.minLat],
+                [bbox.maxLon, bbox.minLat],
+                [bbox.maxLon, bbox.maxLat],
+                [bbox.minLon, bbox.maxLat],
+                [bbox.minLon, bbox.minLat]
+            ]]
+        },
+        properties: {}
+    };
+}
+
+function addPatchHighlight(bboxStr) {
+    if (!map.isStyleLoaded()) {
+        map.once("style.load", () => addPatchHighlight(bboxStr));
+        return;
+    }
+
+    const bbox = parseBbox(bboxStr);
+    const feature = bboxPolygon(bbox);
+
+    if (map.getLayer("patch-highlight-line")) {
+        map.removeLayer("patch-highlight-line");
+    }
+
+    if (map.getLayer("patch-highlight-fill")) {
+        map.removeLayer("patch-highlight-fill");
+    }
+
+    if (map.getSource("patch-highlight")) {
+        map.removeSource("patch-highlight");
+    }
+
+    map.addSource("patch-highlight", {
+        type: "geojson",
+        data: feature
+    });
+
+    map.addLayer({
+        id: "patch-highlight-fill",
+        type: "fill",
+        source: "patch-highlight",
+        paint: {
+            "fill-color": "#ff0000",
+            "fill-opacity": 0.12
+        }
+    });
+
+    map.addLayer({
+        id: "patch-highlight-line",
+        type: "line",
+        source: "patch-highlight",
+        paint: {
+            "line-color": "#ff0000",
+            "line-width": 3,
+            "line-dasharray": [2, 2]
+        }
+    });
+}
+
+async function waitForTileServerReady(maxAttempts = 30) {
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            const res = await fetch(`${STYLE_URL}?check=${Date.now()}`);
+            if (res.ok) return;
+        } catch (e) {
+            console.log("Waiting for TileServer...");
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    throw new Error("TileServer 8081 chưa sẵn sàng sau khi restart");
+}
+
+async function reloadMapAfterPatch(bboxStr) {
+    await waitForTileServerReady();
+
+    isReloadingAfterPatch = true;
+    lastPatchBboxStr = bboxStr;
+    tileCacheBust = Date.now();
+
+    map.setStyle(`${STYLE_URL}?v=${tileCacheBust}`);
+
+    map.once("style.load", () => {
+        const bbox = parseBbox(bboxStr);
+        const center = bboxCenter(bbox);
+
+        map.flyTo({
+            center: center,
+            zoom: Math.max(map.getZoom(), 14),
+            speed: 1.2
+        });
+
+        map.once("idle", () => {
+            addPatchHighlight(bboxStr);
+
+            document.getElementById("debug-panel").innerHTML = `
+                <b>Patch Applied</b><br/>
+                Map reloaded from updated MBTiles.<br/>
+                Highlighted BBOX:
+                <code>${bboxStr}</code>
+                <button onclick="enableRegionSelect()">Select Another Region</button>
+            `;
+
+            isReloadingAfterPatch = false;
+        });
+    });
 }

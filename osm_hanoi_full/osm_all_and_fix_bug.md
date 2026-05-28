@@ -77,7 +77,7 @@ docker run --rm -it \
   --config /config/config.json
 ```
 
-Sau đó mở `http://localhost:8081/styles/hanoi/`
+Sau đó mở `http://localhost:8081/`
 
 sau đó chạy Spring boot: `./mvnw spring-boot:run`
 

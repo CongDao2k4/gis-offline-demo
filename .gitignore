@@ -42,6 +42,7 @@ venv/
 # Large GIS data
 # data/*.osm.pbf
 data/vietnam-latest.osm.pbf
+data/vietnam-180101.osm.pbf
 output/
 logs/
 patches/
