@@ -7,7 +7,7 @@ HANOI_ROADS_OUTPUT="data/hanoi_roads.osm.pbf"
 
 # Bounding box Ha Noi approximate: min_lon, min_lat, max_lon, max_latn -> Kinh độ tối thiểu, Vĩ độ tối thiểu, Kinh độ tối đa, Vĩ độ tối đa. Tìm trên Google Earth
 
-HANOI_BBOX="105.17,20.33,106.03,21.23"
+HANOI_BBOX="105.30,20.45,106.10,21.40"
 
 echo "[INFO] Input file:"
 ls -lh "$INPUT"

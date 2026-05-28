@@ -7,15 +7,15 @@
     }
   },
   "styles": {
-    "hanoi-roads": {
-      "style": "hanoi-roads-style.json",
+    "hanoi": {
+      "style": "hanoi-style.json",
       "serve_rendered": true,
       "serve_data": true
     }
   },
   "data": {
-    "hanoi_roads": {
-      "mbtiles": "hanoi_roads.mbtiles"
+    "hanoi": {
+      "mbtiles": "hanoi.mbtiles"
     }
   }
 }

@@ -1,9 +1,7 @@
 #!/bin/bash
 set -e
 
-# =========================
 # CONFIG
-# =========================
 
 DB_NAME="gis"
 DB_USER="gisuser"
@@ -11,7 +9,8 @@ DB_PASSWORD="gispassword"
 DB_HOST="localhost"
 DB_PORT="5432"
 
-INPUT_FILE="data/hanoi_roads.osm.pbf"
+#INPUT_FILE="data/hanoi_roads.osm.pbf"
+INPUT_FILE="data/hanoi.osm.pbf"
 
 export PGPASSWORD=$DB_PASSWORD
 
@@ -23,6 +22,27 @@ if [ ! -f "$INPUT_FILE" ]; then
 fi
 
 ls -lh "$INPUT_FILE"
+
+# DROP OLD OSM TABLES
+
+echo "[INFO] Dropping old OSM tables..."
+
+psql \
+  -h "$DB_HOST" \
+  -p "$DB_PORT" \
+  -U "$DB_USER" \
+  -d "$DB_NAME" <<EOF
+
+DROP TABLE IF EXISTS planet_osm_line CASCADE;
+DROP TABLE IF EXISTS planet_osm_point CASCADE;
+DROP TABLE IF EXISTS planet_osm_polygon CASCADE;
+DROP TABLE IF EXISTS planet_osm_roads CASCADE;
+
+DROP TABLE IF EXISTS planet_osm_nodes CASCADE;
+DROP TABLE IF EXISTS planet_osm_rels CASCADE;
+DROP TABLE IF EXISTS planet_osm_ways CASCADE;
+
+EOF
 
 # IMPORT OSM -> POSTGIS
 

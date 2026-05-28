@@ -1,3 +1,5 @@
+SELECT COUNT(*) FROM planet_osm_polygon;
+
 SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'planet_osm_polygon' /*ORDER BY ordinal_position*/;
 
 SELECT osm_id, name, building, landuse, planet_osm_polygon.natural, amenity, way
@@ -16,10 +18,14 @@ WHERE name is not null
 GROUP BY name, osm_id
 ORDER BY total DESC;
 
-SELECT name, building, ROUND(ST_Area(way)::numeric, 2) AS area_m2
+SELECT *, ROUND(ST_Area(way)::numeric, 2) AS area_m2 FROM planet_osm_polygon WHERE amenity LIKE 'university';
+
+SELECT name, building, amenity, ROUND(ST_Area(way)::numeric, 2) AS area_m2, ROW_NUMBER() over (PARTITION BY amenity ORDER BY osm_id) AS rn  
 FROM planet_osm_polygon
-/*WHERE building IS NOT NULL*/
+--WHERE lower(name) not like 'xã%' OR lower(name) not like 'quận%' OR lower(name) not like 'tỉnh%' 
+--		OR lower(name) not like 'phường%' OR lower(name) not like '%huyện%' OR lower(name) not like 'thành_phố%' 
+--		OR lower(name) not like 'trung_tâm' OR lower(name) not like 'thị_xã%' OR lower(name) not like 'thị_trấn%'    
 ORDER BY ST_Area(way) DESC
-LIMIT 20;
+OFFSET 1000 LIMIT 100;
 
 
