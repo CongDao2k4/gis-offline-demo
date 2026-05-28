@@ -125,3 +125,26 @@ osm2pgsql \
   --hstore \
   data/hanoi.osm.pbf 
 ```
+
+
+## Chạy Java trong WSL mới được:
+```bash
+sudo apt update
+sudo apt install -y openjdk-21-jdk
+```
+
+Check lại các tool
+
+```bash
+java -version
+docker --version
+osmium --version
+curl --version
+```
+
+Sau đó chạy: `./mvnw spring-boot:run`
+
+Mở giao diện như bình thường: `http://localhost:8080/map/index.html`
+
+Kiểm tra port: `docker ps` để tránh cổng 8091 bị chiếm.
+

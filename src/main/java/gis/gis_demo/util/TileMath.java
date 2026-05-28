@@ -11,30 +11,34 @@ public class TileMath {
         public static BBox parse(String bbox) {
             String[] p = bbox.split(",");
             if (p.length != 4) {
-                throw new IllegalArgumentException("BBox must be minLon,minLat,maxLon,maxLat");
+                throw new IllegalArgumentException("BBox cần đủ kinh độ trái, vĩ độ dưới, kinh độ phải, vĩ độ trên");
             }
-            return new BBox(
-                    Double.parseDouble(p[0]),
-                    Double.parseDouble(p[1]),
-                    Double.parseDouble(p[2]),
-                    Double.parseDouble(p[3])
-            );
+            double minLon = Double.parseDouble(p[0].trim());
+            double minLat = Double.parseDouble(p[1].trim());
+            double maxLon = Double.parseDouble(p[2].trim());
+            double maxLat = Double.parseDouble(p[3].trim());
+            if (minLon > maxLon || minLat > maxLat) {
+                throw new IllegalArgumentException("Invalid bbox order: min values must be <= max values");
+            }
+            return new BBox(minLon, minLat, maxLon, maxLat);
         }
     }
 
     public static Tile lonLatToTile(double lon, double lat, int z) {
-        double latRad = Math.toRadians(lat);
-        int n = 1 << z;
-
+        double clampedLat = Math.max(Math.min(lat, 85.05112878), -85.05112878);
+        double latRad = Math.toRadians(clampedLat);
+        int n = 1 << z; // số nhị phần dịch sang trái 1 vị trí => nhân 2
         int x = (int) Math.floor((lon + 180.0) / 360.0 * n);
-        int y = (int) Math.floor(
-                (1.0 - Math.asin(Math.tan(latRad)) / Math.PI) / 2.0 * n
-        );
-
+        int y = (int) Math.floor((1.0 - Math.log(Math.tan(latRad) + 1.0 / Math.cos(latRad)) / Math.PI) / 2.0 * n);
+        x = Math.max(0, Math.min(n - 1, x));
+        y = Math.max(0, Math.min(n - 1, y));
         return new Tile(z, x, y);
     }
 
     public static List<Tile> tilesForBbox(String bboxText, int minZoom, int maxZoom) {
+        if (minZoom < 0 || maxZoom < minZoom || maxZoom > 30) {
+            throw new IllegalArgumentException("Invalid zoom range: " + minZoom + "-" + maxZoom);
+        }
         BBox b = BBox.parse(bboxText);
         List<Tile> tiles = new ArrayList<>();
 

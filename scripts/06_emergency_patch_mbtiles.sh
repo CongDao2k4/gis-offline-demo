@@ -34,6 +34,7 @@ if [ ! -f "$INPUT_PBF" ]; then
   exit 1
 fi
 
+echo "[INFO] Patch zoom range: ${MINZOOM}-${MAXZOOM}"
 echo "[1/3] Extract bbox with osmium..."
 
 osmium extract \

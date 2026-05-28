@@ -9,8 +9,8 @@
       "tiles": [
         "http://localhost:8081/data/hanoi/{z}/{x}/{y}.pbf"
       ],
-      "minzoom": 6,
-      "maxzoom": 14
+      "minzoom": 4,
+      "maxzoom": 16
     }
   },
   "layers": [
@@ -26,6 +26,7 @@
       "type": "fill",
       "source": "hanoi",
       "source-layer": "water",
+      "minzoom": 4,
       "paint": {
         "fill-color": "#9fd3ff",
         "fill-opacity": 0.85
@@ -36,15 +37,17 @@
       "type": "line",
       "source": "hanoi",
       "source-layer": "water_lines",
+      "minzoom": 4,
       "paint": {
         "line-color": "#5dade2",
         "line-width": [
           "interpolate",
           ["linear"],
           ["zoom"],
-          6, 0.5,
-          10, 1.5,
-          14, 4
+          4, 0.3,
+          10, 1.2,
+          14, 3,
+          16, 5
         ]
       }
     },
@@ -53,11 +56,11 @@
       "type": "symbol",
       "source": "hanoi",
       "source-layer": "water_lines",
-      "minzoom": 11,
+      "minzoom": 4,
       "layout": {
         "symbol-placement": "line",
         "text-field": ["get", "name"],
-        "text-size": 11
+        "text-size": ["interpolate", ["linear"], ["zoom"], 4, 8, 14, 11, 16, 13]
       },
       "paint": {
         "text-color": "#2e86c1",
@@ -70,10 +73,17 @@
       "type": "symbol",
       "source": "hanoi",
       "source-layer": "poi",
-      "minzoom": 13,
+      "minzoom": 4,
       "layout": {
         "text-field": ["get", "name"],
-        "text-size": 10
+        "text-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4, 7,
+          14, 10,
+          16, 12
+        ]
       },
       "paint": {
         "text-color": "#444444",
@@ -96,7 +106,7 @@
       "type": "fill",
       "source": "hanoi",
       "source-layer": "buildings",
-      "minzoom": 13,
+      "minzoom": 4,
       "paint": {
         "fill-color": "#d9d0c9",
         "fill-outline-color": "#b8aea6",
@@ -108,16 +118,17 @@
       "type": "line",
       "source": "hanoi",
       "source-layer": "planned_roads",
-      "minzoom": 10,
+      "minzoom": 4,
       "paint": {
         "line-color": "#777777",
         "line-width": [
           "interpolate",
           ["linear"],
           ["zoom"],
+          4, 0.3,
           10, 0.7,
-          12, 1.5,
-          14, 3
+          14, 3,
+          16, 5
         ],
         "line-dasharray": [2, 2],
         "line-opacity": 0.55
@@ -128,6 +139,7 @@
       "type": "line",
       "source": "hanoi",
       "source-layer": "roads",
+      "minzoom": 4,
       "filter": [
         "in",
         ["get", "class"],
@@ -139,10 +151,10 @@
           "interpolate",
           ["linear"],
           ["zoom"],
-          6, 0.2,
+          4, 0.15,
           10, 0.5,
-          12, 1,
-          14, 2
+          14, 2,
+          16, 4
         ],
         "line-opacity": 0.75
       }
@@ -152,6 +164,7 @@
       "type": "line",
       "source": "hanoi",
       "source-layer": "roads",
+      "minzoom": 4,
       "filter": [
         "in",
         ["get", "class"],
@@ -172,10 +185,10 @@
           "interpolate",
           ["linear"],
           ["zoom"],
-          6, 0.5,
+          4, 0.3,
           10, 1.2,
-          12, 2.2,
-          14, 4
+          14, 4,
+          16, 6
         ]
       }
     },
@@ -184,11 +197,18 @@
       "type": "symbol",
       "source": "hanoi",
       "source-layer": "roads",
-      "minzoom": 13,
+      "minzoom": 4,
       "layout": {
         "symbol-placement": "line",
         "text-field": ["get", "name"],
-        "text-size": 11,
+        "text-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4, 7,
+          14, 11,
+          16, 13
+        ],
         "text-font": ["Open Sans Regular"]
       },
       "paint": {
