@@ -1,3 +1,5 @@
+SELECT COUNT(*) FROM planet_osm_point;
+
 SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'planet_osm_point' /*ORDER BY ordinal_position*/;
 
 SELECT osm_id, name, amenity, shop, tourism, highway, width

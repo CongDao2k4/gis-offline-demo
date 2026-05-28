@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
-INPUT_FILE="data/hanoi_roads.osm.pbf"
-OUTPUT_FILE="output/hanoi_roads.mbtiles"
+#INPUT_FILE="data/hanoi_roads.osm.pbf"
+#OUTPUT_FILE="output/hanoi_roads.mbtiles"
+INPUT_FILE="data/hanoi.osm.pbf"
+OUTPUT_FILE="output/hanoi.mbtiles"
 CONFIG_FILE="tilemaker/config.json"
 PROCESS_FILE="tilemaker/process.lua"
 
@@ -31,6 +33,9 @@ echo "[INFO] Generated:"
 ls -lh "$OUTPUT_FILE"
 
 echo "[INFO] MBTiles metadata:"
-sqlite3 "$OUTPUT_FILE" "SELECT * FROM metadata;"
+sleep 5
+sqlite3 "$OUTPUT_FILE" "SELECT * FROM metadata;" || {
+  echo "[WARN] Could not read metadata immediately. MBTiles file was generated successfully."
+}
 
 echo "[DONE] Vector Tile Pipeline completed."
