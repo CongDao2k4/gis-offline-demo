@@ -9,8 +9,8 @@ DB_PASSWORD="gispassword"
 DB_HOST="localhost"
 DB_PORT="5432"
 
-#INPUT_FILE="data/hanoi_roads.osm.pbf"
-INPUT_FILE="data/hanoi.osm.pbf"
+# INPUT_FILE="data/hanoi_roads.osm.pbf"
+# INPUT_FILE="data/hanoi.osm.pbf"
 
 export PGPASSWORD=$DB_PASSWORD
 
@@ -44,7 +44,7 @@ DROP TABLE IF EXISTS planet_osm_ways CASCADE;
 
 EOF
 
-# IMPORT OSM -> POSTGIS
+# # IMPORT OSM -> POSTGIS
 
 echo "[INFO] Starting osm2pgsql import..."
 

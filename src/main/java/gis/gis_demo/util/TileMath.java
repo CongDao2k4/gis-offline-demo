@@ -5,9 +5,59 @@ import java.util.List;
 
 public class TileMath {
 
+    public static BBox tileToBbox(Tile tile) {
+        int z = tile.z();
+        int x = tile.x();
+        int y = tile.y();
+
+        double n = Math.pow(2.0, z);
+
+        double minLon = x / n * 360.0 - 180.0;
+        double maxLon = (x + 1) / n * 360.0 - 180.0;
+
+        double maxLatRad = Math.atan(Math.sinh(Math.PI * (1.0 - 2.0 * y / n)));
+        double minLatRad = Math.atan(Math.sinh(Math.PI * (1.0 - 2.0 * (y + 1) / n)));
+
+        double maxLat = Math.toDegrees(maxLatRad);
+        double minLat = Math.toDegrees(minLatRad);
+
+        return new BBox(minLon, minLat, maxLon, maxLat);
+    }
+
+    public static BBox unionBboxForTiles(List<Tile> tiles) {
+        if (tiles == null || tiles.isEmpty()) {
+            throw new IllegalArgumentException("tiles must not be empty");
+        }
+
+        double minLon = Double.POSITIVE_INFINITY;
+        double minLat = Double.POSITIVE_INFINITY;
+        double maxLon = Double.NEGATIVE_INFINITY;
+        double maxLat = Double.NEGATIVE_INFINITY;
+
+        for (Tile tile : tiles) {
+            BBox b = tileToBbox(tile);
+
+            minLon = Math.min(minLon, b.minLon());
+            minLat = Math.min(minLat, b.minLat());
+            maxLon = Math.max(maxLon, b.maxLon());
+            maxLat = Math.max(maxLat, b.maxLat());
+        }
+
+        return new BBox(minLon, minLat, maxLon, maxLat);
+    }
+
+    public static int xyzYToTmsY(int z, int xyzY) {
+        return ((1 << z) - 1) - xyzY;
+    }
+
     public record Tile(int z, int x, int y) {}
 
     public record BBox(double minLon, double minLat, double maxLon, double maxLat) {
+        public String toOsmiumBbox() {
+            return String.format(java.util.Locale.US, "%.8f,%.8f,%.8f,%.8f",
+                    minLon, minLat, maxLon, maxLat);
+        }
+
         public static BBox parse(String bbox) {
             String[] p = bbox.split(",");
             if (p.length != 4) {

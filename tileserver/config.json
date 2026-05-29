@@ -3,19 +3,20 @@
     "paths": {
       "root": "/config",
       "styles": "styles",
-      "mbtiles": "/data"
+      "mbtiles": "/data",
+      "fonts": "/usr/src/app/node_modules/tileserver-gl-styles/fonts"
     }
   },
   "styles": {
-    "hanoi": {
-      "style": "hanoi-style.json",
+    "vietnam": {
+      "style": "vietnam-style.json",
       "serve_rendered": true,
       "serve_data": true
     }
   },
   "data": {
-    "hanoi": {
-      "mbtiles": "hanoi.mbtiles"
+    "vietnam": {
+      "mbtiles": "vietnam.mbtiles"
     }
   }
 }

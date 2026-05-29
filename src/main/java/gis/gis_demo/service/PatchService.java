@@ -1,298 +1,212 @@
 package gis.gis_demo.service;
 
+import gis.gis_demo.repository.MbtilesRepository;
 import gis.gis_demo.util.TileMath;
+import gis.gis_demo.util.TilemakerConfigUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
 
+import gis.gis_demo.config.AppConfig;
+
+@Slf4j
 @Service
 public class PatchService {
-    private static final int MIN_ZOOM = 4;
+    private static final String SOURCE_PBF = "data/vietnam-latest.osm.pbf";
+    private static final String BASE_PBF = "data/vietnam-180101.osm.pbf";
     private static final int MAX_ZOOM = 16;
-    private static final int PATCH_TILESERVER_PORT = 8091;
 
     private final Path projectRoot = Paths.get("").toAbsolutePath();
 
-    private void log(Path logFile, String message) {
-        try {
-            Files.createDirectories(logFile.getParent());
-            Files.writeString(
-                    logFile,
-                    java.time.LocalDateTime.now() + " " + message + System.lineSeparator(),
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND
-            );
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot write log file: " + logFile, e);
-        }
-    }
+    private final MbtilesRepository mbtilesRepository;
+    private final TileExportService tileExportService;
+    private final CommandRunnerService commandRunnerService;
+    private final AppConfig appConfig;
 
-    private int normalizeMinZoom(int minZoom) {
-        return minZoom <= 0 ? MIN_ZOOM : Math.max(MIN_ZOOM, minZoom);
+    // Dependency injection via constructor
+    public PatchService(MbtilesRepository mbtilesRepository,
+            TileExportService tileExportService,
+            CommandRunnerService commandRunnerService,
+            AppConfig appConfig) {
+        this.mbtilesRepository = mbtilesRepository;
+        this.tileExportService = tileExportService;
+        this.commandRunnerService = commandRunnerService;
+        this.appConfig = appConfig;
+
+        // Example new dynamic config variables:
+        // String sourcePbf = appConfig.getSourcePbf();
+        // String basePbf = appConfig.getBasePbf();
+        // int maxZoomConfig = appConfig.getMaxZoom();
     }
 
     private int normalizeMaxZoom(int maxZoom) {
         return maxZoom <= 0 ? MAX_ZOOM : Math.min(MAX_ZOOM, maxZoom);
     }
 
-    private String patchStyleJson() {
-        return """
-                {
-                  "version": 8,
-                  "name": "Patch Style",
-                  "center": [105.85, 21.03],
-                  "zoom": 12,
-                  "sources": {
-                    "patch": {
-                      "type": "vector",
-                      "tiles": ["http://localhost:8091/data/patch/{z}/{x}/{y}.pbf"],
-                      "minzoom": 4,
-                      "maxzoom": 16
-                    }
-                  },
-                  "layers": [
-                    {"id":"background","type":"background","paint":{"background-color":"#f3f3f3"}},
-                    {
-                      "id":"water","type":"fill","source":"patch","source-layer":"water",
-                      "minzoom":4,"paint":{"fill-color":"#9fd3ff","fill-opacity":0.85}
-                    },
-                    {
-                      "id":"water-lines","type":"line","source":"patch","source-layer":"water_lines",
-                      "minzoom":4,
-                      "paint":{
-                        "line-color":"#5dade2",
-                        "line-width":["interpolate",["linear"],["zoom"],4,0.3,10,1.2,14,3,16,5]
-                      }
-                    },
-                    {
-                      "id":"water-labels",
-                      "type":"symbol",
-                      "source":"patch",
-                      "source-layer":"water_lines",
-                      "minzoom":4,
-                      "layout":{
-                        "symbol-placement":"line",
-                        "text-field":["get","name"],
-                        "text-size":["interpolate",["linear"],["zoom"],4,8,14,11,16,13]
-                      },
-                      "paint":{
-                        "text-color":"#2e86c1",
-                        "text-halo-color":"#ffffff",
-                        "text-halo-width":1
-                      }
-                    },
-                    {"id":"landuse","type":"fill","source":"patch","source-layer":"landuse","minzoom":4,"paint":{"fill-color":"#d8f0d2","fill-opacity":0.6}},
-                    {"id":"buildings","type":"fill","source":"patch","source-layer":"buildings","minzoom":4,"paint":{"fill-color":"#d9d0c9","fill-outline-color":"#b8aea6","fill-opacity":0.8}},
-                    {"id":"planned-roads","type":"line","source":"patch","source-layer":"planned_roads","minzoom":4,"paint":{"line-color":"#777777","line-width":["interpolate",["linear"],["zoom"],4,0.3,10,0.7,14,3,16,5],"line-dasharray":[2,2],"line-opacity":0.55}},
-                    {"id":"roads-minor","type":"line","source":"patch","source-layer":"roads","minzoom":4,"filter":["in",["get","class"],["literal",["residential","living_street","service","unclassified","track","path","footway","pedestrian","cycleway"]]],"paint":{"line-color":"#9a9a9a","line-width":["interpolate",["linear"],["zoom"],4,0.15,10,0.5,14,2,16,4],"line-opacity":0.75}},
-                    {"id":"roads-major","type":"line","source":"patch","source-layer":"roads","minzoom":4,"filter":["in",["get","class"],["literal",["motorway","trunk","primary","secondary","tertiary"]]],"paint":{"line-color":["match",["get","class"],"motorway","#e63946","trunk","#f77f00","primary","#fcbf49","secondary","#ffd166","tertiary","#ffe599","#555555"],"line-width":["interpolate",["linear"],["zoom"],4,0.3,10,1.2,14,4,16,6]}},
-                    {"id":"road-labels","type":"symbol","source":"patch","source-layer":"roads","minzoom":4,"layout":{"symbol-placement":"line","text-field":["get","name"],"text-size":["interpolate",["linear"],["zoom"],4,7,14,11,16,13],"text-font":["Open Sans Regular"]},"paint":{"text-color":"#333333","text-halo-color":"#ffffff","text-halo-width":1}},
-                    {"id":"poi-labels","type":"symbol","source":"patch","source-layer":"poi","minzoom":4,"layout":{"text-field":["get","name"],"text-size":["interpolate",["linear"],["zoom"],4,7,14,10,16,12]},"paint":{"text-color":"#444444","text-halo-color":"#ffffff","text-halo-width":1}}
-                  ]
-                }
-                """;
+    private List<TileMath.Tile> filterTilesByZoomRange(List<TileMath.Tile> tiles, int minZoom, int maxZoom) {
+        return tiles.stream()
+                .filter(tile -> tile.z() >= minZoom && tile.z() <= maxZoom)
+                .toList();
     }
 
-    public String runPatch(String bbox, String patchName, int minZoom, int maxZoom) throws IOException, InterruptedException {
-        int zMin = normalizeMinZoom(minZoom);
+    public String runPatch(String bboxStr, String patchName, int minZoom, int maxZoom) throws Exception {
+
+        TileMath.BBox parsedBbox = TileMath.BBox.parse(bboxStr);
+        int zMin = Math.max(4, minZoom);
         int zMax = normalizeMaxZoom(maxZoom);
 
         Path patchDir = projectRoot.resolve("patches").resolve(patchName);
+
         if (Files.exists(patchDir)) {
-            deleteDirectory(patchDir);
+            FileFolderService.deleteDirectory(patchDir);
         }
         Files.createDirectories(patchDir);
 
         Path logFile = patchDir.resolve("patch.log");
-        Path patchPbf = patchDir.resolve(patchName + ".osm.pbf");
-        Path patchMbtiles = patchDir.resolve(patchName + ".mbtiles");
-        Path pngDir = patchDir.resolve("png_tiles");
+        Path mainMbtiles = projectRoot.resolve("output").resolve("vietnam.mbtiles");
+        // Path mainMbtiles = projectRoot.resolve(appConfig.getOutputMbtiles());
 
-        log(logFile, "===== START PATCH " + patchName + " =====");
-        log(logFile, "Project root: " + projectRoot);
-        log(logFile, "BBOX: " + bbox);
-        log(logFile, "Zoom: " + minZoom + "-" + maxZoom);
+        LogService.log(logFile, "===== START EXACT PER-TILE BATCH - " + patchName + " =====");
+        LogService.log(logFile, "Project root: " + projectRoot);
+        LogService.log(logFile, "User selected bbox: " + bboxStr);
+        LogService.log(logFile, "Zoom: " + zMin + "-" + zMax);
 
-        runCommand(List.of(
-                "osmium", "extract",
-                "--strategy", "complete_ways",
-                "-b", bbox,
-                "data/vietnam-latest.osm.pbf",
-                "-o", patchPbf.toString(),
-                "--overwrite"
-        ), logFile);
+        Path localPatchOsc = deriveLocalPatchOsc(patchDir, parsedBbox, logFile);
 
-        Files.deleteIfExists(patchMbtiles);
+        // FileFolderService.backupMainMbtiles(mainMbtiles, patchDir, logFile);
 
-        runCommand(List.of(
-                "docker", "run", "--rm",
-                "-v", projectRoot + ":/data",
-                "ghcr.io/systemed/tilemaker:master",
-                "/data/" + projectRoot.relativize(patchPbf),
-                "--output", "/data/" + projectRoot.relativize(patchMbtiles),
-                "--config", "/data/tilemaker/config.json",
-                "--process", "/data/tilemaker/process.lua"
-        ), logFile);
+        List<TileMath.Tile> allAffectedTiles = TileMath.tilesForBbox(bboxStr, zMin, zMax);
+        LogService.log(logFile, "Affected tiles total: " + allAffectedTiles.size());
 
-        Process patchTileServer = null;
-        try {
-            patchTileServer = startPatchTileServer(patchDir, patchMbtiles, logFile);
-            renderPngTiles(bbox, minZoom, maxZoom, pngDir, logFile);
-        } finally {
-            if (patchTileServer != null) {
-                log(logFile, "Stopping temporary Patch TileServer...");
-                patchTileServer.destroy();
-                if (patchTileServer.isAlive()) {
-                    patchTileServer.destroyForcibly();
-                }
-            }
+        List<int[]> batches = generateZoomBatches(zMin);
+
+        for (int[] batch : batches) {
+            int batchMinZoom = batch[0];
+            int batchMaxZoom = batch[1];
+
+            if (batchMinZoom > batchMaxZoom)
+                continue;
+
+            List<TileMath.Tile> tilesInBatch = filterTilesByZoomRange(allAffectedTiles, batchMinZoom, batchMaxZoom);
+            if (tilesInBatch.isEmpty())
+                continue;
+
+            processZoomBatch(batchMinZoom, batchMaxZoom, tilesInBatch, patchDir, localPatchOsc, mainMbtiles, logFile);
         }
 
-        log(logFile, "===== PATCH DONE =====");
+        commandRunnerService.restartTileServerContainer(logFile);
+
+        LogService.log(logFile, "Waiting 10s for TileServer to boot before exporting PNGs...");
+        Thread.sleep(10000);
+
+        // tileExportService.exportRasterTilesAsPng(patchDir.resolve("export_png"), allAffectedTiles, logFile);
+
+        LogService.log(logFile, "===== EXACT PER-TILE PATCH DONE =====");
+
         return patchDir.toString();
     }
 
-    private void renderPngTiles(String bbox, int minZoom, int maxZoom, Path outputDir, Path logFile) throws IOException, InterruptedException {
-        Files.createDirectories(outputDir);
-        List<TileMath.Tile> tiles = TileMath.tilesForBbox(bbox, minZoom, maxZoom);
-        log(logFile, "Tiles to render: " + tiles.size());
+    private Path deriveLocalPatchOsc(Path patchDir, TileMath.BBox parsedBbox, Path logFile) throws Exception {
+        Path oldPatchPbf = patchDir.resolve("old_patch.osm.pbf");
+        Path newPatchPbf = patchDir.resolve("new_patch.osm.pbf");
+        Path localPatchOsc = patchDir.resolve("local_patch.osc");
 
-        for (TileMath.Tile tile : tiles) {
-            Path zxyDir = outputDir.resolve(String.valueOf(tile.z())).resolve(String.valueOf(tile.x()));
-            Files.createDirectories(zxyDir);
-            Path outFile = zxyDir.resolve(tile.y() + ".png");
-            String url = "http://localhost:" + PATCH_TILESERVER_PORT + "/styles/patch/" + tile.z() + "/" + tile.x() + "/" + tile.y() + ".png";
-            runCommand(List.of("curl", "-sS", "-f", url, "-o", outFile.toString()), logFile);
-        }
+        LogService.log(logFile, "Extracting old patch area with complete_ways...");
+        commandRunnerService.runCommand(List.of(
+                "osmium", "extract",
+                "--strategy", "complete_ways",
+                "-b", parsedBbox.toOsmiumBbox(),
+                BASE_PBF,
+                "-o", oldPatchPbf.toString(),
+                "--overwrite"), logFile);
+
+        LogService.log(logFile, "Extracting new patch area with complete_ways...");
+        commandRunnerService.runCommand(List.of(
+                "osmium", "extract",
+                "--strategy", "complete_ways",
+                "-b", parsedBbox.toOsmiumBbox(),
+                SOURCE_PBF,
+                "-o", newPatchPbf.toString(),
+                "--overwrite"), logFile);
+
+        LogService.log(logFile, "Deriving exact local changes for safety...");
+        commandRunnerService.runCommand(List.of(
+                "osmium", "derive-changes",
+                oldPatchPbf.toString(),
+                newPatchPbf.toString(),
+                "-o", localPatchOsc.toString()), logFile);
+
+        return localPatchOsc;
     }
 
-    private Process startPatchTileServer(Path patchDir, Path patchMbtiles, Path logFile) throws IOException, InterruptedException {
-
-        Path tileServerDir = patchDir.resolve("tileserver");
-        Path stylesDir = tileServerDir.resolve("styles");
-
-        Files.createDirectories(stylesDir);
-
-        Path configPath = tileServerDir.resolve("config.json");
-        Path stylePath = stylesDir.resolve("patch-style.json");
-
-        Files.writeString(configPath, """
-        {
-          "options": {
-            "paths": {
-              "root": "/config",
-              "styles": "styles",
-              "mbtiles": "/data"
-            }
-          },
-          "styles": {
-            "patch": {
-              "style": "patch-style.json",
-              "serve_rendered": true,
-              "serve_data": true
-            }
-          },
-          "data": {
-            "patch": {
-              "mbtiles": "patch.mbtiles"
-            }
-          }
+    private List<int[]> generateZoomBatches(int zMin) {
+        List<int[]> batches = new java.util.ArrayList<>();
+        if (zMin <= 8) {
+            batches.add(new int[] { zMin, 8 });
+            batches.add(new int[] { 9, 12 });
+            batches.add(new int[] { 13, 16 });
+        } else if (zMin <= 12) {
+            batches.add(new int[] { zMin, 12 });
+            batches.add(new int[] { 13, 16 });
+        } else {
+            batches.add(new int[] { zMin, 16 });
         }
-        """);
+        return batches;
+    }
 
-        Files.writeString(stylePath, patchStyleJson());
+    private void processZoomBatch(int batchMinZoom, int batchMaxZoom, List<TileMath.Tile> tilesInBatch,
+            Path patchDir, Path localPatchOsc, Path mainMbtiles, Path logFile) throws Exception {
 
-        log(logFile, "Starting temporary Patch TileServer on port " + PATCH_TILESERVER_PORT + "...");
+        LogService.log(logFile, "----- SOLVING ZOOM BATCH " + batchMinZoom + "-" + batchMaxZoom + " -----");
+        LogService.log(logFile, "TILE IS FIXED IN BATCH: " + tilesInBatch.size());
 
-        stopExistingPatchTileServer(logFile);
+        TileMath.BBox batchBbox = TileMath.unionBboxForTiles(tilesInBatch);
+        LogService.log(logFile, "Full tile-cover bbox for batch " + batchMinZoom + "-" + batchMaxZoom + ": "
+                + batchBbox.toOsmiumBbox());
 
-        ProcessBuilder pb = new ProcessBuilder(
+        Path batchDir = patchDir.resolve("z" + batchMinZoom + "_z" + batchMaxZoom);
+        Files.createDirectories(batchDir);
+
+        Path baseTilePbf = batchDir.resolve("base_tile.osm.pbf");
+        Path mergedTilePbf = batchDir.resolve("merged_tile.osm.pbf");
+        Path batchMbtiles = batchDir.resolve("z" + batchMinZoom + "_z" + batchMaxZoom + ".mbtiles");
+        Path batchConfig = batchDir.resolve("tilemaker-z" + batchMinZoom + "-z" + batchMaxZoom + ".json");
+
+        Path originalConfig = projectRoot.resolve("tilemaker").resolve("config.json");
+        TilemakerConfigUtil.generateTilemakerConfig(batchMinZoom, batchMaxZoom, batchBbox, originalConfig, batchConfig);
+
+        LogService.log(logFile, "Extracting 2km x 2km base tile from 2018 map...");
+        commandRunnerService.runCommand(List.of(
+                "osmium", "extract",
+                "--strategy", "complete_ways",
+                "-b", batchBbox.toOsmiumBbox(),
+                BASE_PBF,
+                "-o", baseTilePbf.toString(),
+                "--overwrite"), logFile);
+
+        LogService.log(logFile, "Merging precise changes into base tile...");
+        commandRunnerService.runCommand(List.of(
+                "osmium", "apply-changes",
+                baseTilePbf.toString(),
+                localPatchOsc.toString(),
+                "-o", mergedTilePbf.toString(),
+                "--overwrite"), logFile);
+
+        Files.deleteIfExists(batchMbtiles);
+
+        LogService.log(logFile, "Generating tile with tilemaker...");
+        commandRunnerService.runCommand(List.of(
                 "docker", "run", "--rm",
-                "-v", patchMbtiles.toAbsolutePath() + ":/data/patch.mbtiles",
-                "-v", tileServerDir.toAbsolutePath() + ":/config",
-                "-p", PATCH_TILESERVER_PORT + ":8080",
-                "maptiler/tileserver-gl",
-                "--config", "/config/config.json"
-        );
+                "-v", projectRoot + ":/data",
+                "ghcr.io/systemed/tilemaker:master",
+                "/data/" + projectRoot.relativize(mergedTilePbf),
+                "--output", "/data/" + projectRoot.relativize(batchMbtiles),
+                "--config", "/data/" + projectRoot.relativize(batchConfig),
+                "--process", "/data/tilemaker/process.lua"), logFile);
 
-        pb.directory(projectRoot.toFile());
-        pb.redirectErrorStream(true);
-        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
-
-        Process process = pb.start();
-        waitForPatchTileServer(logFile);
-
-        return process;
+        mbtilesRepository.upsertSelectedTilesFromPatchMbtiles(batchMbtiles, mainMbtiles, tilesInBatch, logFile);
+        mbtilesRepository.exportVectorTilesFromMbtiles(batchMbtiles, patchDir.resolve("export"), tilesInBatch, logFile);
     }
-
-    private void waitForPatchTileServer(Path logFile) throws InterruptedException {
-        int maxAttempts = 60;
-
-        for (int i = 0; i < maxAttempts; i++) {
-            try {
-//                ProcessBuilder pb = new ProcessBuilder(
-//                        "curl", "-s", "http://localhost:" + PATCH_TILESERVER_PORT + "/health"
-//                );
-                ProcessBuilder pb = new ProcessBuilder(
-                        "curl", "-s", "-f",
-                        "http://localhost:8091/styles/patch/style.json"
-                );
-                Process p = pb.start();
-                int exit = p.waitFor();
-                if (exit == 0) {
-                    log(logFile, "Patch TileServer is ready.");
-                    Thread.sleep(1000);
-                    return;
-                }
-            } catch (Exception ignored) {
-            }
-            Thread.sleep(1000);
-        }
-        throw new RuntimeException("Patch TileServer did not start on port " + PATCH_TILESERVER_PORT);
-    }
-
-    private void runCommand(List<String> command, Path logFile) throws IOException, InterruptedException {
-        log(logFile, "$ " + String.join(" ", command));
-
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(projectRoot.toFile());
-        pb.redirectErrorStream(true);
-        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
-
-        Process process = pb.start();
-        int exit = process.waitFor();
-        if (exit != 0) {
-            throw new RuntimeException("Command failed: " + String.join(" ", command) + ". See log: " + logFile);
-        }
-    }
-
-    private void deleteDirectory(Path dir) throws IOException {
-        if (!Files.exists(dir)) return;
-
-        try (var paths = Files.walk(dir)) {
-            paths
-                    .sorted((a, b) -> b.compareTo(a))
-                    .forEach(path -> {
-                        try {
-                            Files.deleteIfExists(path);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Failed to delete: " + path, e);
-                        }
-                    });
-        }
-    }
-
-    private void stopExistingPatchTileServer(Path logFile) {
-        try {
-            runCommand(List.of(
-                    "bash", "-lc",
-                    "docker ps --filter publish=8091 -q | xargs -r docker stop"
-            ), logFile);
-        } catch (Exception e) {
-            log(logFile, "WARN: Could not stop existing patch TileServer: " + e.getMessage());
-        }
-    }
-
 }

@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="utf-8"/>
+    <meta charset="utf-8" />
     <title>Hanoi Offline Map Debug</title>
 
-    <link href="http://localhost:8081/maplibre-gl.css" rel="stylesheet"/>
-    <link href="map.css" rel="stylesheet"/>
+    <link href="http://localhost:8081/maplibre-gl.css" rel="stylesheet" />
+    <link href="map.css" rel="stylesheet" />
     <script src="http://localhost:8081/maplibre-gl.js"></script>
 </head>
 
 <body>
-<div id="map"></div>
-<div id="debug-panel">Loading...</div>
-<div id="selection-box"></div>
+    <div id="map"></div>
+    <div id="debug-panel">Loading...</div>
+    <div id="diff-panel"
+        style="display: none; position: absolute; right: 10px; top: 10px; bottom: 10px; width: 300px; background: white; z-index: 1000; overflow-y: auto; box-shadow: -2px 0 5px rgba(0,0,0,0.2); padding: 10px; font-family: sans-serif; box-sizing: border-box;">
+    </div>
+    <div id="selection-box"></div>
 
-<script src="map.js"></script>
+    <script src="globals.js"></script>
+    <script src="map_core.js"></script>
+    <script src="ui_panel.js"></script>
+    <script src="patch_api.js"></script>
+    <script src="diff_ui.js"></script>
+    <script src="region_select.js"></script>
 </body>
+
 </html>

@@ -19,3 +19,5 @@ WHERE
     OR tags ? 'construction'
     OR construction IS NOT NULL
 LIMIT 1000;
+
+

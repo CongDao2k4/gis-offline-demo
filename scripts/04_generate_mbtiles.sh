@@ -3,8 +3,12 @@ set -e
 
 #INPUT_FILE="data/hanoi_roads.osm.pbf"
 #OUTPUT_FILE="output/hanoi_roads.mbtiles"
-INPUT_FILE="data/hanoi.osm.pbf"
-OUTPUT_FILE="output/hanoi.mbtiles"
+#INPUT_FILE="data/hanoi.osm.pbf"
+#OUTPUT_FILE="output/hanoi.mbtiles"
+#INPUT_FILE="data/vietnam-latest.osm.pbf"
+#OUTPUT_FILE="output/vietnam.mbtiles"
+INPUT_FILE="data/vietnam-180101.osm.pbf"
+OUTPUT_FILE="output/vietnam.mbtiles"
 CONFIG_FILE="tilemaker/config.json"
 PROCESS_FILE="tilemaker/process.lua"
 
