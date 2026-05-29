@@ -43,6 +43,7 @@ venv/
 # data/*.osm.pbf
 data/vietnam-latest.osm.pbf
 data/vietnam-180101.osm.pbf
+data/vietnam-changes.osc
 output/
 logs/
 patches/

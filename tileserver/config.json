@@ -3,7 +3,8 @@
     "paths": {
       "root": "/config",
       "styles": "styles",
-      "mbtiles": "/data"
+      "mbtiles": "/data",
+      "fonts": "/usr/src/app/node_modules/tileserver-gl-styles/fonts"
     }
   },
   "styles": {
