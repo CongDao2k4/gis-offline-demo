@@ -9,6 +9,22 @@ let isPatching = false;
 const STYLE_URL = "http://localhost:8081/styles/vietnam/style.json";
 const MIN_ZOOM = 4;
 const MAX_ZOOM = 16;
+
+// Example dynamic config initialization from backend API
+/*
+let STYLE_URL = "";
+let MIN_ZOOM = 4;
+let MAX_ZOOM = 16;
+
+async function loadConfig() {
+    const res = await fetch('/api/config');
+    const config = await res.json();
+    STYLE_URL = `http://${config.tileserverHost}:${config.tileserverPort}/styles/${config.styleName}/style.json`;
+    MIN_ZOOM = config.minZoom;
+    MAX_ZOOM = config.maxZoom;
+}
+// Note: If using dynamic config, call loadConfig() and wait for it before initializing the map.
+*/
 const DEFAULT_PATCH_DELTA = 0.01;
 
 function lngLatToTile(lng, lat, z) {

@@ -8,11 +8,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import gis.gis_demo.config.AppConfig;
+
 @Slf4j
 @Service
 public class CommandRunnerService {
 
     private final Path projectRoot = Paths.get("").toAbsolutePath();
+    private final AppConfig appConfig;
+
+    public CommandRunnerService(AppConfig appConfig) {
+        this.appConfig = appConfig;
+    }
 
     public void runCommand(List<String> command, Path logFile) throws IOException, InterruptedException {
         LogService.log(logFile, "$ " + String.join(" ", command));
@@ -34,6 +41,9 @@ public class CommandRunnerService {
         runCommand(List.of(
                 "bash", "-lc",
                 "docker ps --filter publish=8081 -q | xargs -r docker restart"), logFile);
+        // runCommand(List.of(
+        //         "bash", "-lc",
+        //         "docker ps --filter publish=" + appConfig.getTileserverPort() + " -q | xargs -r docker restart"), logFile);
         LogService.log(logFile, "TileServer restart requested.");
     }
 }

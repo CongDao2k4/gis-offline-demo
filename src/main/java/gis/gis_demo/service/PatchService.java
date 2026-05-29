@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import java.nio.file.*;
 import java.util.List;
 
+import gis.gis_demo.config.AppConfig;
+
 @Slf4j
 @Service
 public class PatchService {
@@ -21,14 +23,22 @@ public class PatchService {
     private final MbtilesRepository mbtilesRepository;
     private final TileExportService tileExportService;
     private final CommandRunnerService commandRunnerService;
+    private final AppConfig appConfig;
 
     // Dependency injection via constructor
     public PatchService(MbtilesRepository mbtilesRepository,
             TileExportService tileExportService,
-            CommandRunnerService commandRunnerService) {
+            CommandRunnerService commandRunnerService,
+            AppConfig appConfig) {
         this.mbtilesRepository = mbtilesRepository;
         this.tileExportService = tileExportService;
         this.commandRunnerService = commandRunnerService;
+        this.appConfig = appConfig;
+
+        // Example new dynamic config variables:
+        // String sourcePbf = appConfig.getSourcePbf();
+        // String basePbf = appConfig.getBasePbf();
+        // int maxZoomConfig = appConfig.getMaxZoom();
     }
 
     private int normalizeMaxZoom(int maxZoom) {
@@ -56,6 +66,7 @@ public class PatchService {
 
         Path logFile = patchDir.resolve("patch.log");
         Path mainMbtiles = projectRoot.resolve("output").resolve("vietnam.mbtiles");
+        // Path mainMbtiles = projectRoot.resolve(appConfig.getOutputMbtiles());
 
         LogService.log(logFile, "===== START EXACT PER-TILE BATCH - " + patchName + " =====");
         LogService.log(logFile, "Project root: " + projectRoot);
@@ -64,7 +75,7 @@ public class PatchService {
 
         Path localPatchOsc = deriveLocalPatchOsc(patchDir, parsedBbox, logFile);
 
-        FileFolderService.backupMainMbtiles(mainMbtiles, patchDir, logFile);
+        // FileFolderService.backupMainMbtiles(mainMbtiles, patchDir, logFile);
 
         List<TileMath.Tile> allAffectedTiles = TileMath.tilesForBbox(bboxStr, zMin, zMax);
         LogService.log(logFile, "Affected tiles total: " + allAffectedTiles.size());

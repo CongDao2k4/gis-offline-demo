@@ -14,14 +14,18 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
+import gis.gis_demo.config.AppConfig;
+
 @Slf4j
 @Service
 public class TileExportService {
 
     // Singleton HttpClient for better performance and resource management
     private final HttpClient httpClient;
+    private final AppConfig appConfig;
 
-    public TileExportService() {
+    public TileExportService(AppConfig appConfig) {
+        this.appConfig = appConfig;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -42,6 +46,7 @@ public class TileExportService {
         int count = 0;
         for (TileMath.Tile tile : targetTiles) {
             String tileUrl = String.format("http://localhost:8081/styles/vietnam/%d/%d/%d.png", tile.z(), tile.x(), tile.y());
+            // String tileUrl = String.format("http://%s:%d/styles/%s/%d/%d/%d.png", appConfig.getTileserverHost(), appConfig.getTileserverPort(), appConfig.getStyleName(), tile.z(), tile.x(), tile.y());
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(tileUrl))
